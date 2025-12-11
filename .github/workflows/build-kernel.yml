@@ -1,0 +1,102 @@
+name: Kernel Builds
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"   # diario a las 6 UTC
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential flex bison dwarves bc \
+          libssl-dev libelf-dev libncurses-dev \
+          wget curl jq
+
+    # ========================
+    #  BUILD CACHE
+    # ========================
+    - name: Setup ccache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ccache
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
+    # ========================
+    #  FETCH SOURCE
+    # ========================
+    - name: Fetch latest kernel
+      run: |
+        mkdir build
+        cd build
+        ../scripts/fetch-latest.sh mainline
+
+    - name: Load version
+      working-directory: build
+      run: echo "KVER=$(cat latest.txt)" >> $GITHUB_ENV
+
+    # ========================
+    #  PACK SOURCE
+    # ========================
+    - name: Pack source
+      working-directory: build
+      run: ../scripts/package-source.sh
+
+    # ========================
+    #  BUILD DEFCONFIG
+    # ========================
+    - name: Build defconfig kernel
+      working-directory: build/kernel-source
+      run: |
+        make defconfig
+        make -j"$(nproc)"
+        make modules
+        mkdir -p ../../artifacts/defconfig
+        cp -r vmlinux .config System.map arch/x86/boot/bzImage ../../artifacts/defconfig
+
+    # ========================
+    #  BUILD DEBUG
+    # ========================
+    - name: Prepare debug config
+      working-directory: build
+      run: ../scripts/prepare-debug-config.sh kernel-source
+
+    - name: Build debug kernel
+      working-directory: build/kernel-source
+      run: |
+        make -j"$(nproc)"
+        make modules
+        mkdir -p ../../artifacts/debug
+        cp -r vmlinux .config System.map arch/x86/boot/bzImage scripts/gdb ../../artifacts/debug
+
+    # ========================
+    #  UPLOAD ARTIFACTS
+    # ========================
+    - name: Upload defconfig
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-defconfig-${{ env.KVER }}
+        path: artifacts/defconfig
+
+    - name: Upload debug
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-debug-${{ env.KVER }}
+        path: artifacts/debug
+
+    - name: Upload source code used
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-source-${{ env.KVER }}
+        path: artifacts/source
+
