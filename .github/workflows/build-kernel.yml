@@ -3,7 +3,7 @@ name: Kernel Builds
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * *"   # diario a las 6 UTC
+    - cron: "0 0 1 * *"   # diario a las 6 UTC
 
 jobs:
   build:
