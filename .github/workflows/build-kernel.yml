@@ -3,7 +3,7 @@ name: Kernel Builds
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 1 * *"   # diario a las 6 UTC
+    - cron: "0 0 1 * *"   # mensual
 
 jobs:
   build:
@@ -13,6 +13,9 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
+    # ========================
+    # INSTALL DEPENDENCIES
+    # ========================
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -22,7 +25,7 @@ jobs:
           wget curl jq
 
     # ========================
-    #  BUILD CACHE
+    # BUILD CACHE
     # ========================
     - name: Setup ccache
       uses: actions/cache@v3
@@ -31,15 +34,15 @@ jobs:
         key: ${{ runner.os }}-ccache-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-ccache-
-    
+
     # ========================
-    # MAKE SCRIPTS EXCECUTABLE
-    # ======================== 
+    # MAKE SCRIPTS EXECUTABLE
+    # ========================
     - name: Make scripts executable
       run: chmod +x scripts/*.sh
 
     # ========================
-    #  FETCH SOURCE
+    # FETCH SOURCE
     # ========================
     - name: Fetch latest kernel
       run: |
@@ -52,14 +55,14 @@ jobs:
       run: echo "KVER=$(cat latest.txt)" >> $GITHUB_ENV
 
     # ========================
-    #  PACK SOURCE
+    # PACK SOURCE
     # ========================
     - name: Pack source
       working-directory: build
       run: ../scripts/package-source.sh
 
     # ========================
-    #  BUILD DEFCONFIG
+    # BUILD DEFCONFIG
     # ========================
     - name: Build defconfig kernel
       working-directory: build/kernel-source
@@ -67,25 +70,45 @@ jobs:
         make defconfig
         make -j"$(nproc)"
         mkdir -p ../../artifacts/defconfig
-        cp -r vmlinux .config System.map arch/x86/boot/bzImage ../../artifacts/defconfig
+        cp -v vmlinux .config System.map arch/x86/boot/bzImage ../../artifacts/defconfig/
 
     # ========================
-    #  BUILD DEBUG
+    # PREPARE DEBUG CONFIG
     # ========================
     - name: Prepare debug config
-      working-directory: build
-      run: ../scripts/prepare-debug-config.sh kernel-source
+      working-directory: build/kernel-source
+      run: |
+        # Enable all real debug options
+        scripts/config --file .config \
+          -e DEBUG_KERNEL \
+          -e DEBUG_INFO \
+          -e GDB_SCRIPTS \
+          -e KALLSYMS_ALL \
+          -e DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
 
+    # ========================
+    # BUILD DEBUG KERNEL
+    # ========================
     - name: Build debug kernel
       working-directory: build/kernel-source
       run: |
         make -j"$(nproc)"
         make scripts_gdb
+
         mkdir -p ../../artifacts/debug
-        cp -r vmlinux .config System.map arch/x86/boot/bzImage scripts/gdb ../../artifacts/debug
+
+        cp -vr \
+          vmlinux \
+          .config \
+          System.map \
+          arch/x86/boot/bzImage \
+          scripts/gdb \
+          ../../artifacts/debug/
+
+        ln -s gdb/linux-gdb.py ../../artifacts/debug/vmlinux-gdb.py
 
     # ========================
-    #  UPLOAD ARTIFACTS
+    # UPLOAD ARTIFACTS
     # ========================
     - name: Upload defconfig
       uses: actions/upload-artifact@v4
