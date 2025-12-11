@@ -12,8 +12,5 @@ make defconfig
 echo "CONFIG_DEBUG_INFO=y" >> .config
 echo "CONFIG_GDB_SCRIPTS=y" >> .config
 
-# Generar scripts de gdb
-make scripts_gdb
-
 echo "Configuración de debug lista."
 

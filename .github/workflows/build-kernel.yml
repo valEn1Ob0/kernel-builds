@@ -66,7 +66,6 @@ jobs:
       run: |
         make defconfig
         make -j"$(nproc)"
-        make modules
         mkdir -p ../../artifacts/defconfig
         cp -r vmlinux .config System.map arch/x86/boot/bzImage ../../artifacts/defconfig
 
@@ -81,7 +80,7 @@ jobs:
       working-directory: build/kernel-source
       run: |
         make -j"$(nproc)"
-        make modules
+        make scripts_gdb
         mkdir -p ../../artifacts/debug
         cp -r vmlinux .config System.map arch/x86/boot/bzImage scripts/gdb ../../artifacts/debug
 
