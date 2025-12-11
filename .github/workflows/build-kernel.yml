@@ -31,6 +31,12 @@ jobs:
         key: ${{ runner.os }}-ccache-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-ccache-
+    
+    # ========================
+    # MAKE SCRIPTS EXCECUTABLE
+    # ======================== 
+    - name: Make scripts executable
+      run: chmod +x scripts/*.sh
 
     # ========================
     #  FETCH SOURCE
