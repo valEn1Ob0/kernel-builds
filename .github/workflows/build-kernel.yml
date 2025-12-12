@@ -78,7 +78,7 @@ jobs:
     - name: Prepare debug config
       working-directory: build/kernel-source
       run: |
-        scripts/config --file .config \
+        scripts/config --enable \
           -e DEBUG_KERNEL \
           -e DEBUG_INFO \
           -e GDB_SCRIPTS \
