@@ -55,7 +55,7 @@ jobs:
       run: echo "KVER=$(cat latest.txt)" >> $GITHUB_ENV
 
     # ========================
-    # PACK SOURCE
+    # PACK SOURCE (still needed)
     # ========================
     - name: Pack source
       working-directory: build
@@ -78,14 +78,13 @@ jobs:
     - name: Prepare debug config
       working-directory: build/kernel-source
       run: |
-        # Enable all real debug options
         scripts/config --file .config \
           -e DEBUG_KERNEL \
           -e DEBUG_INFO \
           -e GDB_SCRIPTS \
           -e KALLSYMS_ALL \
           -e DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
-
+          
     # ========================
     # BUILD DEBUG KERNEL
     # ========================
@@ -94,18 +93,10 @@ jobs:
       run: |
         make -j"$(nproc)"
         make scripts_gdb
-
+    
         mkdir -p ../../artifacts/debug
-
-        cp -vr \
-          vmlinux \
-          .config \
-          System.map \
-          arch/x86_64/boot/bzImage \
-          scripts/gdb \
-          ../../artifacts/debug/
-
-        ln -s gdb/linux-gdb.py ../../artifacts/debug/vmlinux-gdb.py
+    
+        cp -a . ../../artifacts/debug/
 
     # ========================
     # UPLOAD ARTIFACTS
@@ -121,10 +112,3 @@ jobs:
       with:
         name: kernel-debug-${{ env.KVER }}
         path: artifacts/debug
-
-    - name: Upload source code used
-      uses: actions/upload-artifact@v4
-      with:
-        name: kernel-source-${{ env.KVER }}
-        path: artifacts/source
-
