@@ -70,7 +70,7 @@ jobs:
         make defconfig
         make -j"$(nproc)"
         mkdir -p ../../artifacts/defconfig
-        cp -v vmlinux .config System.map arch/x86/boot/bzImage ../../artifacts/defconfig/
+        cp -v vmlinux .config System.map arch/x86_64/boot/bzImage ../../artifacts/defconfig/
 
     # ========================
     # PREPARE DEBUG CONFIG
@@ -101,7 +101,7 @@ jobs:
           vmlinux \
           .config \
           System.map \
-          arch/x86/boot/bzImage \
+          arch/x86_64/boot/bzImage \
           scripts/gdb \
           ../../artifacts/debug/
 
